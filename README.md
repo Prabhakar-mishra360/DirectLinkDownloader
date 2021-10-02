@@ -14,7 +14,7 @@
   ```git clone https://github.com/Prabhakar-mishra360/DirectLinkDownloader.git```
   - Open command prompt with working directory as cloned/downloaded project folder
   - Then install all requirements:  
-  ```pip install -r requirement.txt```
+  ```pip install -r requirements.txt```
   - After proper installation of all requirement execute below command on same command prompt:  
   ```python DirectLinkDownloader.py```
 - After application opens:
