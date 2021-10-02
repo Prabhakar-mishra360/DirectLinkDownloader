@@ -10,12 +10,12 @@
   - Download DirectLinkDowloader.exe from 'Windows Executables 64bit'. Double click to install.
 - With Python installation:
   - Download and install python 3
-  - Clone/download project : 
+  - Clone/download project :   
   ```git clone https://github.com/Prabhakar-mishra360/DirectLinkDownloader.git```
   - Open command prompt with working directory as cloned/downloaded project folder
-  - Then install all requirements
+  - Then install all requirements:  
   ```pip install -r requirement.txt```
-  - After proper installation of all requirement execute below command on same command prompt
+  - After proper installation of all requirement execute below command on same command prompt:  
   ```python DirectLinkDownloader.py```
 - After application opens:
   - If you are trying to download a movie press on movie tab (default) give link, select resolution and press Aabra ka dabra.
