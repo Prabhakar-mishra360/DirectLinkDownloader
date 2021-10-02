@@ -19,7 +19,7 @@
   ```python DirectLinkDownloader.py```
 - After application opens:
   - If you are trying to download a movie press on movie tab (default) give link, select resolution and press Aabra ka dabra.
-  - If you are trying to download a series press on series tab give link select option torrent file or all episode links and press Aabra ka dabra and let the magic happen for you.  
+  - If you are trying to download a series press on series tab give link select option torrent file or all episode links and press Aabra ka dabra and let the magic happen for you.   - Torrent download option will only work for windows OS. 
 
 ### Tech
 - DirectLinkDownloader uses python3 with PyQt5, BeautifulSoup, requests. 
