@@ -20,7 +20,10 @@
 
 ### Usage
   - Search Tab
-    - First tab is search tab, you need to give two input 1. Top level domain 2. Name of a movie or 
+    - First tab is search tab, you need to give two input 1. Top level domain 2. Name of a movie or series you want to search.
+    - Press on search, then wait for few seconds.
+    - When success message popup and result count more than 0, you can select link from drop down and click on copy.
+    - By clicking on copy, it will copy the selected text from dropdown to your system clipboard so you can directly paste on next tabs.
   - Movie Tab
     - If you are trying to download a movie press on movie tab, paste the link copied from seach tab if found, select resolution and press  
     Aabra ka dabra.
