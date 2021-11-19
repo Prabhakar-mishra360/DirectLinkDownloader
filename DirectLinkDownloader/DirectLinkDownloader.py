@@ -1,6 +1,7 @@
 '''Icon used is made by Freepik (https://www.freepik.com) from www.flaticon.com '''
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
 import logging
 import requests
 from bs4 import BeautifulSoup
@@ -15,13 +16,62 @@ class CustomException(Exception):
 class Ui_MainWindow(object):
     def __init__(self) -> None:
         super().__init__()
+        
+        self._messageBox:QMessageBox = None
         self._url:str = ""
         self._resolution:int = -1
         self._choice:int = -1
+        self.linkProvider = ""
         self._LOG_FILE_PATH = "Log.log"
         logging.basicConfig(filename=self._LOG_FILE_PATH,level=logging.DEBUG, 
                 format='%(asctime)s %(message)s')
         logging.info("****************Application started****************")
+
+    def isUpdateAvailable(self):
+        try:
+            URL = "https://github.com/Prabhakar-mishra360/DirectLinkDownloader/tree/main/Windows%20Executables%2064bit"
+            response = requests.get(URL)
+            APPVERSION = "DirectLinkDownloader 3.0.exe"
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, "html.parser")
+                ONLINE_APP_VERSION = soup.findAll(class_ = "js-navigation-open Link--primary")[0].get("title")
+                
+                if(len(ONLINE_APP_VERSION) > len(APPVERSION) or ONLINE_APP_VERSION > APPVERSION):
+                    self.showPopUp()
+            else:
+                logging.info("isUpdateAvailable request failed: "+str(response.status_code))
+        except Exception as e:
+            logging.info("Is update error: "+str(e))
+
+    def showPopUp(self):
+        
+        self._messageBox = QMessageBox()
+        self._messageBox.setWindowTitle("Update Available")
+        self._messageBox.setText("Do you want to download?")
+        self._messageBox.setIcon(QMessageBox.Question)
+        self._messageBox.setWindowIcon(QtGui.QIcon('icon.png'))
+        self._messageBox.setStandardButtons(QMessageBox.Cancel|QMessageBox.Ok)
+        self._messageBox.buttonClicked.connect(self._downloadUpdate)
+        self._messageBox.exec()
+
+    def _downloadUpdate(self,choice):
+        
+        if(choice.text() == "OK"):
+            self._messageBox.setIcon(QMessageBox.Information)
+            self._messageBox.setText("Please Wait Downloading!")
+            self._messageBox.repaint()
+            
+            DOWNLOAD_LINK = "https://raw.githubusercontent.com/Prabhakar-mishra360/DirectLinkDownloader/main/Windows%20Executables%2064bit/DirectLinkDownloader.exe"
+            PATH = "C:/Users/"+getuser()+"/Downloads/"+"DirectLinkDownloader.exe"
+            response = requests.get(DOWNLOAD_LINK)
+            if response.status_code == 200:
+                with open(PATH,'wb') as f:
+                    f.write(response.content)
+                self.setStatusBarMsg("Downloaded: "+PATH,"green")
+
+            else:
+                logging.info("Download failed with: "+str(response.status_code))
+
 
 
     def setupUi(self, MainWindow):
@@ -115,9 +165,14 @@ class Ui_MainWindow(object):
         self.Title_2.setObjectName("Title_2")
 
         self.megaLink = QtWidgets.QLineEdit(self.movie)
-        self.megaLink.setGeometry(QtCore.QRect(10, 130, 751, 21))
+        self.megaLink.setGeometry(QtCore.QRect(10, 130, 680, 21))
         self.megaLink.setReadOnly(True)
         self.megaLink.setObjectName("megaLink")
+
+        self.copyMovieLink = QtWidgets.QPushButton(self.movie)
+        self.copyMovieLink.setGeometry(QtCore.QRect(700, 130, 60, 22))
+        self.copyMovieLink.setObjectName("copyMovieLink")
+        self.copyMovieLink.clicked.connect(self.copyLink)
 
         self.progressBar = QtWidgets.QProgressBar(self.movie)
         self.progressBar.setGeometry(QtCore.QRect(10, 162, 771, 31))
@@ -131,8 +186,13 @@ class Ui_MainWindow(object):
         self.url.setReadOnly(False)
         self.url.setObjectName("url")
 
+        self.selectMovieSite = QtWidgets.QComboBox(self.movie)
+        self.selectMovieSite.setGeometry(QtCore.QRect(240, 90, 80, 23))
+        self.selectMovieSite.setObjectName("selectSite")
+        self.selectMovieSite.addItems(["Mega","ExtraFiles","ShareDrive"])
+
         self.getLink = QtWidgets.QPushButton(self.movie)
-        self.getLink.setGeometry(QtCore.QRect(240, 90, 521, 23))
+        self.getLink.setGeometry(QtCore.QRect(340, 90, 421, 23))
         self.getLink.setObjectName("getLink")
         self.getLink.clicked.connect(self.doMagicForMovies)
 
@@ -198,6 +258,8 @@ class Ui_MainWindow(object):
         self.tabs.currentChanged.connect(lambda x :self.statusbar.clearMessage() )
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
+        self.isUpdateAvailable()
+
     def clear(self,who:str):
         self.statusbar.clearMessage()
         self.statusbar.setStyleSheet('color:black')
@@ -242,12 +304,15 @@ class Ui_MainWindow(object):
 
     def multithreadLinks(self,url:str,linkList:list):
         response = requests.get(url)
+        lock = threading.Lock()
         if(response.status_code == 200):
             soup = BeautifulSoup(response.text, "html.parser")
             links = soup.findAll('a')
             for link in links:
                 if str(link.get('href')).__contains__("view"):
+                    lock.acquire()
                     linkList.append(link.get('href'))
+                    lock.release()
                     break
 
     # This is used to get link of page from where torrent can be downloaded
@@ -394,15 +459,23 @@ class Ui_MainWindow(object):
             links = soup.findAll('a')
             self.progressBar.setProperty("value", 72)
             for link in links:
-                if str(link).__contains__("Mega"):
+                if str(link).__contains__(self.selectMovieSite.currentText()):
                     usefullLinks.append(str(link.get('href')))
             logging.info("Second stage urls: "+str(usefullLinks))
             return usefullLinks
         else:
             raise CustomException("Unable to fetch link")
 
-
-    # For mega download page link of extramovies
+    def whichSourceForMovie(self):
+        selectedOption = self.selectMovieSite.currentText()
+        if selectedOption == "Mega":
+            self.linkProvider = "mega.nz"
+        elif selectedOption == "ExtraFiles":
+            self.linkProvider = "extrafiles"
+        elif selectedOption == "ShareDrive":
+            self.linkProvider = "sharedrive"
+    
+    # For download page link of extramovies
     def thirdStageUrls(self,url: str):
         response = requests.get(url)
         logging.info("Started third stage")
@@ -415,7 +488,7 @@ class Ui_MainWindow(object):
             links = soup.findAll('a')
             self.progressBar.setProperty("value", 95)
             for link in links:
-                if str(link.get('href')).startswith("https://mega"):
+                if str(link.get('href')).__contains__(self.linkProvider):
                     logging.info("Third stage urls: "+str(link.get('href')))
                     return (str(link.get('href')))
         else:
@@ -453,6 +526,7 @@ class Ui_MainWindow(object):
         
         logging.info("Magic started for movie...")
         self.clear("movie")
+        self.whichSourceForMovie()
         try:
             self._url = self.url.text()
             if(self._url.strip() == ""):
@@ -603,7 +677,11 @@ class Ui_MainWindow(object):
             logging.debug(str(e))
         
     def copyLink(self):
-        copy(self.linkList.currentText())
+        tabIndex:int = self.tabs.currentIndex()
+        if tabIndex == 0:    
+            copy(self.linkList.currentText())
+        elif tabIndex == 1:
+            copy(self.megaLink.text())
         self.setStatusBarMsg("Copied!","green")
 
     def retranslateUi(self, MainWindow):
@@ -620,6 +698,7 @@ class Ui_MainWindow(object):
         self.copy.setText(_translate("MainWindow", "Copy"))
         self.Title_2.setText(_translate("MainWindow", "ExtraMovies Direct Downloader"))
         self.megaLink.setPlaceholderText(_translate("MainWindow", "Link will display here"))
+        self.copyMovieLink.setText(_translate("MainWindow", "Copy"))
         self.url.setPlaceholderText(_translate("MainWindow", "Movie Link from Extramovies"))
         self.getLink.setText(_translate("MainWindow", "Aabra ka dabra"))
         self.fullHD.setText(_translate("MainWindow", "Full HD 1080p"))
